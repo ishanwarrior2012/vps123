@@ -19,6 +19,7 @@ clear
 echo "=========================================="
 echo "          SAFE TRACK NOW - SECURE         "
 echo "=========================================="
+
 read -s -p "Enter Security PIN to access: " user_pin
 echo ""
 
@@ -51,38 +52,64 @@ while true; do
 
     case "$choice" in
 
+        1)
+            echo "Installing HestiaCP..."
+            bash <(curl -s https://raw.githubusercontent.com/hestiacp/hestiacp/release/install/hst-install.sh)
+            read -p "Press Enter..."
+            ;;
+
+        2)
+            echo "Installing SMTP (Postfix)..."
+            apt update -y
+            apt install -y postfix mailutils
+            dpkg-reconfigure postfix
+            read -p "Press Enter..."
+            ;;
+
+        3)
+            echo "Installing n8n..."
+            apt update -y
+            apt install -y npm
+            npm install -g n8n
+            echo "Run using: n8n"
+            read -p "Press Enter..."
+            ;;
+
         4)
             while true; do
                 clear
-                echo "--- PTERODACTYL & ADDONS ---"
-                echo "1) Install Pterodactyl (Unofficial - .se script)"
-                echo "2) Install Pterodactyl (Official Manual)"
-                echo "3) Install Blueprint (Framework)"
-                echo "4) Update Blueprint (-upgrade)"
-                echo "5) Sync Addons from GitHub (.blueprint only)"
-                echo "6) Back to Main Menu"
+                echo "=================================="
+                echo "     PTERODACTYL & ADDONS MENU    "
+                echo "=================================="
+                echo "1) Install Pterodactyl (Unofficial)"
+                echo "2) Install Pterodactyl (Manual)"
+                echo "3) Install Blueprint"
+                echo "4) Update Blueprint"
+                echo "5) Sync Addons (.blueprint)"
+                echo "6) Update Pterodactyl Panel"
+                echo "7) Back"
 
-                read -p "Select [1-6]: " ptero_choice
+                read -p "Select [1-7]: " ptero_choice
 
                 case "$ptero_choice" in
 
                     1)
-                        echo "Running Unofficial Pterodactyl Installer..."
+                        echo "Running installer..."
                         bash <(curl -s https://pterodactyl-installer.se)
-                        read -p "Process finished. Press Enter..."
+                        read -p "Done. Press Enter..."
                         ;;
 
                     2)
-                        echo "Downloading Official Pterodactyl Files..."
+                        echo "Downloading panel..."
                         mkdir -p "$PTERO_DIR" && cd "$PTERO_DIR" || break
                         curl -Lo panel.tar.gz https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz
                         tar -xzvf panel.tar.gz
                         chmod -R 755 storage/* bootstrap/cache/
-                        read -p "Base files ready. Press Enter..."
+                        read -p "Done. Press Enter..."
                         ;;
 
                     3)
-                        echo "Installing Blueprint Framework..."
+                        echo "Installing Blueprint..."
                         bash <(curl -fsSL https://raw.githubusercontent.com/hopingboyz/blueprint/main/blueprint-installer.sh)
                         read -p "Done. Press Enter..."
                         ;;
@@ -92,106 +119,117 @@ while true; do
                         blueprint -upgrade
                         php artisan view:clear
                         php artisan config:clear
-                        read -p "Blueprint Upgraded. Press Enter..."
+                        read -p "Blueprint updated. Press Enter..."
                         ;;
 
                     5)
-                        echo "Syncing ONLY .blueprint files from $GH_USER/$GH_REPO..."
+                        echo "Syncing addons..."
                         cd "$PTERO_DIR" || { echo "Directory not found."; break; }
 
                         API_URL="https://api.github.com/repos/$GH_USER/$GH_REPO/contents/$ADDON_PATH"
                         FILES=$(curl -s "$API_URL" | grep '"name":' | cut -d '"' -f4 | grep '\.blueprint$')
 
                         if [ -z "$FILES" ]; then
-                            echo "No .blueprint files found in repository."
+                            echo "No addons found."
                         else
                             for file in $FILES; do
-                                echo "Downloading: $file"
+                                echo "Downloading $file"
                                 RAW_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/main/$ADDON_PATH/$file"
                                 wget -q -O "$file" "$RAW_URL"
 
                                 if [ -f "$file" ]; then
-                                    echo "Installing: $file"
                                     blueprint -install "$file"
                                     rm -f "$file"
-                                else
-                                    echo "Failed to download $file"
                                 fi
                             done
 
                             php artisan view:clear
                             php artisan config:clear
-                            echo "Sync Completed Successfully!"
+                            echo "Sync complete!"
                         fi
 
-                        read -p "Press Enter to continue..."
+                        read -p "Press Enter..."
                         ;;
 
                     6)
+                        echo "Updating Pterodactyl Panel..."
+                        cd "$PTERO_DIR" || { echo "Directory not found."; break; }
+
+                        php artisan down
+
+                        git stash
+                        git pull origin main
+
+                        composer install --no-dev --optimize-autoloader
+                        php artisan migrate --seed --force
+
+                        chown -R www-data:www-data *
+                        chmod -R 755 storage/* bootstrap/cache/
+
+                        php artisan view:clear
+                        php artisan config:clear
+                        php artisan cache:clear
+
+                        php artisan up
+
+                        echo "Panel Updated Successfully!"
+                        read -p "Press Enter..."
+                        ;;
+
+                    7)
                         break
                         ;;
 
                     *)
-                        read -p "Invalid selection. Press Enter..."
+                        read -p "Invalid option..."
                         ;;
                 esac
             done
             ;;
 
         5)
-            echo "--- Installing CloudPanel ---"
+            echo "Installing CloudPanel..."
             curl -sS https://installer.cloudpanel.io -o install.sh
             DB_ENGINE=MARIADB_10.11 bash install.sh
-            read -p "Press Enter to return..."
+            read -p "Press Enter..."
             ;;
 
         6)
-            echo "--- Installing Cloudflare Tunnel ---"
+            echo "Installing Cloudflare Tunnel..."
             curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
             dpkg -i cloudflared.deb
             rm -f cloudflared.deb
-            echo "Installation complete!"
 
-            read -p "Enter Zero Trust Token (or leave blank to skip): " cf_token
+            read -p "Enter token (optional): " cf_token
             if [ ! -z "$cf_token" ]; then
                 cloudflared service install "$cf_token"
             fi
 
-            read -p "Press Enter to return..."
+            read -p "Press Enter..."
             ;;
 
         7)
-            echo "=========================================="
-            echo "        SYSTEM UPDATE & VPS INFO          "
-            echo "=========================================="
-
-            echo ""
-            echo "Updating packages..."
+            echo "Updating system..."
             apt update && apt upgrade -y
 
-            echo ""
-            echo "========== SYSTEM SUMMARY =========="
+            echo "===== SYSTEM INFO ====="
             echo "Hostname: $(hostname)"
             echo "IP: $(hostname -I | awk '{print $1}')"
             echo "Kernel: $(uname -r)"
 
-            echo ""
-            echo "========== RAM USAGE =========="
+            echo "----- RAM -----"
             free -h
 
-            echo ""
-            echo "========== DISK USAGE =========="
+            echo "----- DISK -----"
             df -h
 
-            echo ""
-            echo "========== CPU INFO =========="
+            echo "----- CPU -----"
             lscpu | grep "Model name"
 
-            echo ""
-            echo "========== UPTIME =========="
+            echo "----- UPTIME -----"
             uptime
 
-            read -p "Press Enter to return..."
+            read -p "Press Enter..."
             ;;
 
         8)
@@ -200,7 +238,7 @@ while true; do
             ;;
 
         *)
-            read -p "Invalid selection. Press Enter to try again..."
+            read -p "Invalid choice..."
             ;;
     esac
 done
