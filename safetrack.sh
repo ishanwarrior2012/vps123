@@ -35,7 +35,7 @@ while true; do
     clear
     echo "=========================================="
     echo "             SAFE TRACK NOW               "
-    echo "     © 2026 Safe Track Now org            "
+    echo "     © 2026 Safe Track Now org           "
     echo "=========================================="
     echo "1) > Install HestiaCP Panel (SMTP)"
     echo "2) > Configure SMTP (Internal Relay)"
@@ -43,10 +43,11 @@ while true; do
     echo "4) > Pterodactyl & Addons Menu"
     echo "5) > Install CloudPanel (High Performance)"
     echo "6) > Install Cloudflare Tunnel (cloudflared)"
-    echo "7) > Exit"
+    echo "7) > System Update & VPS Info"
+    echo "8) > Exit"
     echo "=========================================="
 
-    read -p "Select an option [1-7]: " choice
+    read -p "Select an option [1-8]: " choice
 
     case "$choice" in
 
@@ -160,6 +161,40 @@ while true; do
             ;;
 
         7)
+            echo "=========================================="
+            echo "        SYSTEM UPDATE & VPS INFO          "
+            echo "=========================================="
+
+            echo ""
+            echo "Updating packages..."
+            apt update && apt upgrade -y
+
+            echo ""
+            echo "========== SYSTEM SUMMARY =========="
+            echo "Hostname: $(hostname)"
+            echo "IP: $(hostname -I | awk '{print $1}')"
+            echo "Kernel: $(uname -r)"
+
+            echo ""
+            echo "========== RAM USAGE =========="
+            free -h
+
+            echo ""
+            echo "========== DISK USAGE =========="
+            df -h
+
+            echo ""
+            echo "========== CPU INFO =========="
+            lscpu | grep "Model name"
+
+            echo ""
+            echo "========== UPTIME =========="
+            uptime
+
+            read -p "Press Enter to return..."
+            ;;
+
+        8)
             echo "Exiting..."
             exit 0
             ;;
