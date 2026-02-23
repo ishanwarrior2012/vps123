@@ -32,4 +32,4 @@ Give a star if you like the project!
 - Use **Markdown formatting**
   - `#` = headings  
   - `-` = list  
-  - ``` = code block 
+  - ``` = code block ```
