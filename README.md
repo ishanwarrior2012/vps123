@@ -12,4 +12,4 @@ A powerful all-in-one VPS management script.
 
 ## 🛠 Installation
 
-```bash <(curl -s https://raw.githubusercontent.com/ishanwarrior2012/vps123/main/safetrack.sh)
+```bash <(curl -s https://raw.githubusercontent.com/ishanwarrior2012/vps123/main/safetrack.sh)```
